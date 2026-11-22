@@ -94,7 +94,7 @@ Four checks, all from publicly available data, with no sensors built (full metho
 
 No aircraft has mapped NO₂ columns over Mumbai. In summer 2018 NASA's LISTOS campaign flew the **GCAS** imaging spectrometer over New York City during Sentinel-5P overpasses and mapped the NO₂ column at ~250 m. Independent ground spectrometers (Pandora) agree with these maps to r² = 0.92 (Judd et al., AMT 2020).
 
-We ran the system unchanged on New York for 3 afternoon flights (19 and 20 July, 15 August 2018; a fourth, 5 August, had no Sentinel-5P overpass in Earth Engine). It ran on 18 tiles of 8 × 8 km covered by the aircraft at 10 m, and the maps were averaged to the aircraft's 250 m grid. **The CNN is the one trained on Mumbai; no New York or aircraft data was used to train or tune anything.** The aircraft data is used only for scoring.
+I ran the system unchanged on New York for 3 afternoon flights (19 and 20 July, 15 August 2018; a fourth, 5 August, had no Sentinel-5P overpass in Earth Engine). It ran on 18 tiles of 8 × 8 km covered by the aircraft at 10 m, and the maps were averaged to the aircraft's 250 m grid. **The CNN is the one trained on Mumbai; no New York or aircraft data was used to train or tune anything.** The aircraft data is used only for scoring.
 
 | Method | r at 250 m (all 18 tiles) | r at 1 km (all) | **r at 250 m (11 resolved tiles)** | r at 1 km (resolved) | Beats interpolation (resolved) |
 |---|---|---|---|---|---|
@@ -167,17 +167,17 @@ The maps were compared with Mumbai's CPCB/MPCB monitors (via OpenAQ) at the Sent
 - most stations sit next to roads or inside compounds;
 - neighbouring stations often disagree with each other.
 
-The CO "AQI-band accuracy" of 100 % in the result file is meaningless: every reading falls in the *Good* band. O₃ and aerosol index (PM2.5 as a proxy) were not run, and HCHO has no ground monitors. We keep this check to show it was done and why it is not the right yardstick for column maps.
+The CO "AQI-band accuracy" of 100 % in the result file is meaningless: every reading falls in the *Good* band. O₃ and aerosol index (PM2.5 as a proxy) were not run, and HCHO has no ground monitors. I keep this check to show it was done and why it is not the right yardstick for column maps.
 
 `python validation/validate.py ground --pollutant NO2 --start 2025-11-01 --end 2026-02-28` (needs a free OpenAQ key)
 
 ### What did not work, and what changed because of it
 
-- **A plain CNN trained on small windows learned nothing on real data.** Sentinel-5P's pixel (~5.5 × 3.5 km) is larger than the windows, so the target carried no usable within-window signal. We replaced it with a **hybrid**: a regression base plus a CNN correction, trained on whole areas through the satellite's real footprint.
-- **A per-day contrast fit often came out zero or negative,** so the map fell back to plain interpolation. We replaced it with one season-level pattern strength.
+- **A plain CNN trained on small windows learned nothing on real data.** Sentinel-5P's pixel (~5.5 × 3.5 km) is larger than the windows, so the target carried no usable within-window signal. I replaced it with a **hybrid**: a regression base plus a CNN correction, trained on whole areas through the satellite's real footprint.
+- **A per-day contrast fit often came out zero or negative,** so the map fell back to plain interpolation. I replaced it with one season-level pattern strength.
 - **The original hackathon method (linear regression on Sentinel-2 bands) is worse than interpolation on real data** for NO₂, CO and aerosol index (checks 1 and 2). It is kept in the app for comparison only.
-- **Early maps had negative values and streaks over the sea.** We added a non-negative floor and a water mask from Sentinel-2 (NDWI).
-- **Ground stations showed no skill** (check 4). This is why we turned to aircraft column data for validation.
+- **Early maps had negative values and streaks over the sea.** I added a non-negative floor and a water mask from Sentinel-2 (NDWI).
+- **Ground stations showed no skill** (check 4). This is why I turned to aircraft column data for validation.
 
 ### Next steps
 
