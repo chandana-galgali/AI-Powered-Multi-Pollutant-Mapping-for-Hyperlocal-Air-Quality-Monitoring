@@ -29,6 +29,20 @@ from hyperlocal_aq.config import MUMBAI_BBOX, POLLUTANTS  # noqa: E402
 GROUND_POLLUTANTS = ["NO2", "SO2", "CO", "O3", "AER_AI"]   # HCHO has no routine ground monitoring
 
 
+def refresh_docs():
+    """Re-fill the auto-generated results tables in README.md and docs/VALIDATION.md."""
+    try:
+        import importlib.util
+        path = os.path.join(HERE, "report.py")
+        spec = importlib.util.spec_from_file_location("report", path)
+        rep = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(rep)
+        for doc in ("README.md", os.path.join("docs", "VALIDATION.md")):
+            rep.fill(os.path.join(rep.ROOT, doc))
+    except Exception as e:  # noqa: BLE001  (docs refresh must never break a validation run)
+        print("README/VALIDATION tables not refreshed:", e)
+
+
 def save(name, obj):
     os.makedirs(RESULTS, exist_ok=True)
     obj["generated_utc"] = datetime.now(timezone.utc).isoformat(timespec="seconds")
@@ -36,6 +50,7 @@ def save(name, obj):
     with open(path, "w") as f:
         json.dump(validation.clean_json(obj), f, indent=1)
     print("wrote", path)
+    refresh_docs()
 
 
 def run_ground(a, pollutant):

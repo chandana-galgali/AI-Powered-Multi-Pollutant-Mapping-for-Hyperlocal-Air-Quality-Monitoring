@@ -36,7 +36,7 @@ This project implements a **domain-agnostic "Super-Resolution" AI pipeline** tha
 * **Six Pollutants:** NO₂, SO₂, CO, HCHO, O₃ and the UV aerosol index.
 * **Model Choice:** linear regression on Sentinel-2 bands, multi-scale regression, random forest, and a **hybrid regression + CNN** whose CNN is trained with an aggregation loss through the real Sentinel-5P footprint (~5.5 × 3.5 km).
 * **Cloud-Gap Handling:** inverse-distance filling of cloudy blocks; seasonal decomposition for long gaps.
-* **Independently Validated:** against NASA airborne NO₂ column maps (New York, LISTOS 2018); the Mumbai-trained model beats interpolation without any New York training.
+* **Independently Tested:** against NASA airborne NO₂ column maps (New York, LISTOS 2018, 60 tiles), with the results, good and bad, reported in full.
 * **Actionable Output:** ranked 10 m hotspots and downloadable GeoTIFFs for GIS tools.
 * **Extensible & Domain-Agnostic Architecture:** the same downscaling core can be retrained for crop health, flood risk or urban heat islands.
 
@@ -83,55 +83,64 @@ The CNN correction improves on the regression for every pollutant. NO₂ and aer
 
 Four checks, all from publicly available data, with no sensors built (full method: **[docs/VALIDATION.md](docs/VALIDATION.md)**):
 
+<!-- AUTO:headline -->
 | Check | Truth | Headline result |
 |---|---|---|
-| **1. NASA airborne NO₂ maps (New York)** | independent column maps at 250 m | CNN trained **only on Mumbai** beats interpolation in **12 of 18** tiles. Where the satellite resolves the pattern: r **0.49 → 0.59** at 250 m |
+| **1. NASA airborne NO₂ maps (New York)** | independent column maps at 250 m | With no New York training, the Mumbai-trained CNN is **on par with interpolation at 250 m** (33/60 tiles) and **slightly better than it at 1 km** (37/60 tiles, r 0.50 → 0.53) |
 | **2. Up-scaling test (Mumbai, 6 pollutants)** | real Sentinel-5P at 1 km | CNN adds detail for **every pollutant**: skill **+0.09 to +0.13** over interpolation on a held-out season |
 | 3. Simulated scene | known 10 m field | CNN recovers hotspot classes best for 5 of 6 pollutants |
-| 4. Surface monitoring stations | CPCB / MPCB monitors | no method, including the raw satellite, tracks station readings (r ≈ 0.1). Documented below, not used as an accuracy claim |
+| 4. Surface monitoring stations | CPCB / MPCB monitors | no method, including the raw satellite, tracks station readings (r ≤ 0.1). Documented below, not used as an accuracy claim |
+<!-- /AUTO:headline -->
 
 ### 1. Independent truth: NASA airborne NO₂ column maps over New York
 
 No aircraft has mapped NO₂ columns over Mumbai. In summer 2018 NASA's LISTOS campaign flew the **GCAS** imaging spectrometer over New York City during Sentinel-5P overpasses and mapped the NO₂ column at ~250 m. Independent ground spectrometers (Pandora) agree with these maps to r² = 0.92 (Judd et al., AMT 2020).
 
-I ran the system unchanged on New York for 3 afternoon flights (19 and 20 July, 15 August 2018; a fourth, 5 August, had no Sentinel-5P overpass in Earth Engine). It ran on 18 tiles of 8 × 8 km covered by the aircraft at 10 m, and the maps were averaged to the aircraft's 250 m grid. **The CNN is the one trained on Mumbai; no New York or aircraft data was used to train or tune anything.** The aircraft data is used only for scoring.
+<!-- AUTO:airborne -->
+I ran the system unchanged on New York for 10 afternoon flights (2 Jul, 19 Jul, 20 Jul, 6 Aug, 15 Aug, 16 Aug, 24 Aug, 28 Aug, 29 Aug, 6 Sep 2018). 5 Aug had no Sentinel-5P overpass in Earth Engine. For 6 Sep NASA's WRF-Chem column is empty, so the NAM-CMAQ version of the aircraft column is used. It ran on 60 tiles of 8 × 8 km covered by the aircraft at 10 m, and the maps were averaged to the aircraft's 250 m grid. **The CNN is the one trained on Mumbai; no New York or aircraft data was used to train or tune anything.** The aircraft data is used only for scoring.
 
-| Method | r at 250 m (all 18 tiles) | r at 1 km (all) | **r at 250 m (11 resolved tiles)** | r at 1 km (resolved) | Beats interpolation (resolved) |
+| Method | r at 250 m (all 60 tiles) | r at 1 km (all) | **r at 250 m (30 resolved tiles)** | r at 1 km (resolved) | Beats interpolation (all / resolved) |
 |---|---|---|---|---|---|
-| Sentinel-5P as is (1 km) | 0.41 | 0.51 | 0.48 | 0.65 | – |
-| Interpolation (bilinear) | 0.42 | 0.54 | 0.49 | 0.66 | – |
-| Linear regression | 0.34 | 0.55 | 0.45 | 0.67 | 5/11 |
-| Multi-scale regression | 0.33 | 0.54 | 0.46 | 0.63 | 4/11 |
-| **Hybrid regression + CNN** | **0.42** | **0.60** | **0.59** | **0.73** | **8/11** |
+| Sentinel-5P as is (1 km) | 0.28 | 0.48 | 0.55 | 0.67 | – |
+| Interpolation (bilinear) | 0.29 | 0.50 | 0.57 | 0.70 | – |
+| Linear regression | 0.30 | 0.51 | 0.45 | 0.65 | 28/60 / 7/30 |
+| Multi-scale regression | 0.27 | 0.49 | 0.46 | 0.63 | 24/60 / 4/30 |
+| **Hybrid regression + CNN** | **0.28** | **0.53** | **0.53** | **0.73** | **33/60 / 13/30** |
 
 *Resolved tiles* are those where the raw 1 km satellite itself tracks the aircraft pattern (r ≥ 0.3). The selection depends only on the satellite, not on any downscaling method.
 
 What it shows:
-- **The model transfers to a city it has never seen.** Over all 18 tiles the CNN beats interpolation in 12 of them. Where Sentinel-5P resolves the pollution pattern, it raises the agreement with the aircraft from 0.49 to 0.59 at 250 m and from 0.66 to 0.73 at 1 km. This matches the gain measured independently in Mumbai (check 2).
-- **Regression alone does not beat interpolation,** in New York as in Mumbai. This supports the hybrid design.
-- **The level is right:** Sentinel-5P reads ~0.9× the aircraft column, consistent with the known low bias of the 2018 product.
+- **At 250 m the Mumbai-trained CNN is on par with interpolation** in New York: it wins 33 of 60 tiles (sign test p = 0.26), median r 0.28 vs 0.29. Its 10 m detail does not transfer reliably to a different city and season.
+- **At 1 km it is slightly better than interpolation:** 37 of 60 tiles (p = 0.046), median r 0.53 vs 0.50.
+- **Where the satellite already matches the aircraft well** (30 tiles), interpolation is hard to beat: r at 250 m is 0.53 for the CNN vs 0.57 for interpolation, and 0.73 vs 0.70 at 1 km. On some of these tiles the surface-based detail moved NO₂ to the wrong places.
+- **Regression alone does worse than interpolation,** in New York as in Mumbai.
+- **The level is right:** Sentinel-5P reads ~0.94× the aircraft column, consistent with the known low bias of the 2018 product.
+- **More data changed the picture.** The first 3 flights alone (18 tiles) suggested a clear win, but the full 10 flights do not. That is why the larger sample is the one reported.
 
 Limits, stated plainly:
-- **On 7 tiles no method works.** They were mostly low-NO₂ days, with columns of 2.4–3.5 × 10¹⁵ molecules/cm², close to instrument noise. Downscaling cannot add a pattern the satellite does not contain.
-- **Detail inside each 1 km cell is weakly predicted** (r ≈ 0.1 vs 0.06 for interpolation). Most of the gain is at the 250 m – 1 km scale. The maps are also smoother than reality, with ~40–65 % of the aircraft's contrast.
-- **The sample is small.** With 12/18 and 8/11 wins, a sign test gives p ≈ 0.12. The sub-1 km detail wins (13/18) give p ≈ 0.05. More flights are available (see *Next steps*).
-- **A different city and year** (New York, 2018, an older Sentinel-5P processor with a 7 × 3.5 km pixel). This validates the **method**, not Mumbai's maps specifically.
+- **On 30 of 60 tiles the raw satellite itself does not track the aircraft** (r < 0.3), mostly clean or patchy days. No method can add a pattern the satellite does not contain.
+- **Detail inside each 1 km cell is weakly predicted** (r ≈ 0.06 vs 0.09 for interpolation, resolved tiles). The maps are also smoother than reality, with ~44–59 % of the aircraft's contrast.
+- **Sub-1 km detail:** the CNN wins 33/60 tiles (p = 0.26), i.e. no reliable gain.
+- **A different city and year** (New York, 2018, an older Sentinel-5P processor with a 7 × 3.5 km pixel). This tests the **method**, not Mumbai's maps specifically.
 - **Shared surface artifacts are possible:** NASA notes that parks and bright buildings can leave small artifacts in the aircraft retrieval, and our model also uses surface brightness.
+<!-- /AUTO:airborne -->
 
-Reproduce: `python validation/airborne/airborne.py extract`, then `python validation/airborne/airborne.py compare` (download steps in docs/VALIDATION.md). Results: `validation/results/airborne_NO2.json`.
+Reproduce: `python validation/airborne/airborne.py extract`, then `python validation/airborne/airborne.py compare` (download steps in docs/VALIDATION.md). Results: `validation/results/airborne_NO2.json`. The tables on this page are filled from the result files (`python validation/report.py`; it runs automatically after each validation).
 
 ### 2. Up-scaling test on real Sentinel-5P (Mumbai, held-out 2025-26 season)
 
 Real 1 km Sentinel-5P is averaged to 4 km, downscaled back to 1 km with each method, and compared with the real 1 km values. *Detail r* scores only the detail inside each 4 km block, i.e. the part the method had to supply.
 
+<!-- AUTO:upscaling -->
 | Pollutant | Detail r: interpolation | **Detail r: CNN** | **CNN skill vs interpolation** | Linear regression skill |
 |---|---|---|---|---|
 | NO₂ | 0.51 | **0.60** | **+0.09** | −0.15 |
-| SO₂ | 0.40 | **0.58** | **+0.13** | +0.11 |
+| SO₂ | 0.40 | **0.58** | **+0.12** | +0.11 |
 | CO | 0.45 | **0.60** | **+0.12** | −0.04 |
-| HCHO | 0.41 | **0.58** | **+0.11** | +0.11 |
+| HCHO | 0.40 | **0.58** | **+0.11** | +0.11 |
 | O₃ | 0.39 | **0.59** | **+0.13** | +0.12 |
 | Aerosol index | 0.47 | **0.57** | **+0.10** | −0.09 |
+<!-- /AUTO:upscaling -->
 
 Skill = 1 − RMSE / RMSE(interpolation), so above 0 means better than interpolation. This test assumes that the relation learned from 4 km to 1 km also holds from 1 km to 10 m. That assumption is why check 1 matters.
 
@@ -156,18 +165,22 @@ With a realistic ~5 × 4 km Sentinel-5P footprint, the footprint-aware methods r
 
 The maps were compared with Mumbai's CPCB/MPCB monitors (via OpenAQ) at the Sentinel-5P overpass time, 13:00–15:00 IST, for the held-out 2025-26 season. The table shows the median daily correlation across stations:
 
+<!-- AUTO:ground -->
 | Pollutant | Stations / readings | Sentinel-5P as is | Interpolation | CNN | CNN skill vs raw satellite |
 |---|---|---|---|---|---|
 | NO₂ | 29 / 2248 | 0.09 | 0.12 | 0.10 | −0.01 |
-| SO₂ | 27 / 2119 | 0.06 | 0.04 | 0.04 | 0.00 |
-| CO  | 28 / 1507 | −0.02 | −0.03 | −0.05 | 0.00 |
+| SO₂ | 27 / 2119 | 0.06 | 0.04 | 0.03 | 0.00 |
+| CO | 28 / 1507 | −0.02 | −0.03 | −0.04 | 0.00 |
+| O₃ | 29 / 2192 | 0.00 | −0.01 | −0.07 | 0.00 |
+| Aerosol index (vs PM2.5) | 29 / 2534 | 0.05 | 0.06 | −0.01 | 0.00 |
+<!-- /AUTO:ground -->
 
 **Finding:** nothing tracks the stations. That includes the raw satellite, which the downscaling cannot be expected to beat on this test. This is a property of the comparison, not of the method:
 - column ≠ surface;
 - most stations sit next to roads or inside compounds;
 - neighbouring stations often disagree with each other.
 
-The CO "AQI-band accuracy" of 100 % in the result file is meaningless: every reading falls in the *Good* band. O₃ and aerosol index (PM2.5 as a proxy) were not run, and HCHO has no ground monitors. I keep this check to show it was done and why it is not the right yardstick for column maps.
+The CO "AQI-band accuracy" of 100 % in the result file is meaningless: every reading falls in the *Good* band. I keep this check to show it was done and why it is not the right yardstick for column maps.
 
 `python validation/validate.py ground --pollutant NO2 --start 2025-11-01 --end 2026-02-28` (needs a free OpenAQ key)
 
@@ -181,12 +194,26 @@ The CO "AQI-band accuracy" of 100 % in the result file is meaningless: every rea
 
 ### Next steps
 
-- **More New York flights.** Six more LISTOS afternoon flights overlap Sentinel-5P (6, 16, 24, 28, 29 Aug and 6 Sep 2018). Adding them roughly triples the tile count and settles the statistics.
-- **Other airborne campaigns over different cities** that overlap Sentinel-5P, to test transfer beyond one city.
+<!-- AUTO:airborne_next -->
+- **Train on more cities and seasons.** In New York the Mumbai-trained model's fine detail did not transfer reliably; training on several cities (and the summer season) is the most direct way to make it general.
+- **Other airborne campaigns over different cities** that overlap Sentinel-5P, to test any retrained model independently.
+<!-- /AUTO:airborne_next -->
 - **A separate surface-concentration model** (satellite + meteorology + land use, validated leave-one-station-out). This is the right tool if the goal is "what people breathe" rather than the column.
 
 ---
 
+
+## 🏭 Case study: Chembur – Trombay – Mahul
+
+Mumbai's main industrial belt (a coal power station, two refineries and a fertiliser complex) spans only a few
+Sentinel-5P pixels. The 10 m maps place the high NO₂ values on the industrial plots instead of spreading them over the
+surrounding homes, mangroves and bay. They do this while still reproducing what the satellite measured.
+
+![Sentinel-5P at 1 km vs this system at 10 m](docs/case_study/before_after.png)
+
+Details, the season average, the numbers for each site and how to read them (including caveats): **[docs/CASE_STUDY.md](docs/CASE_STUDY.md)**.
+
+---
 
 ## 🛠️ Tech Stack
 
@@ -210,6 +237,7 @@ backend/
   tests/              pytest (Earth Engine mocked)
 frontend/             React + Leaflet dashboard (Vite)
 validation/           validate.py (ground stations, up-scaling test), run_validation.py (simulation), results/
+                      report.py (fills the README tables) · case_study/ (fetch.py, build.py)
                       airborne/airborne.py (NASA LISTOS airborne NO₂ comparison, New York)
 gee/                  Earth Engine Code Editor scripts
 notebooks/legacy/     original hackathon notebooks
@@ -234,7 +262,7 @@ npm install
 npm run dev                              # http://localhost:5173 (proxies /api to :5000)
 ```
 
-Production deployment (Render, Railway, Cloud Run): see **[docs/DEPLOY.md](docs/DEPLOY.md)**.
+Production deployment (Render): see **[docs/DEPLOY.md](docs/DEPLOY.md)**.
 
 ### API
 

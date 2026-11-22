@@ -89,8 +89,9 @@ daily correlation between the map, seen through the footprint, and Sentinel-5P:
 
 At the satellite's own ~5 km scale, "what the satellite usually shows here" (persistent winds, plumes)
 is as good as any surface-based model. That's why each day's map takes its large-scale pattern from the
-satellite itself, and the models only supply the 10 m detail. That detail can only be judged against
-ground stations (`validation/validate.py ground`).
+satellite itself, and the models only supply the 10 m detail. That detail is judged against independent
+NASA airborne NO₂ column maps and by the up-scaling test (README, *Validation*; docs/VALIDATION.md). Ground
+stations measure a different quantity (surface air, not the column) and turned out not to be usable for this.
 
 In a simulation with a realistic footprint (5 × 4 km smoothing, day-to-day swings of ×0.3–2.5, 15 %
 noise), this raised hotspot-class accuracy from 0.52 (interpolation) to 0.70 (multi-scale regression)

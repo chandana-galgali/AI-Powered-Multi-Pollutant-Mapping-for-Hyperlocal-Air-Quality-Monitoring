@@ -90,15 +90,28 @@ def extract(_args):
 # Airborne data on a lattice
 # ---------------------------------------------------------------------------
 def load_flight(path, column=1, window_h=1.5, overpass_utc=17.75):
-    """Clear-sky airborne pixels near the Sentinel-5P overpass (NYC ≈ 17:00–18:30 UTC)."""
+    """Clear-sky airborne pixels near the Sentinel-5P overpass (NYC ≈ 17:00–18:30 UTC).
+
+    If the requested a-priori version is missing for a whole flight (NASA left the WRF-Chem
+    column empty on 6 Sep 2018), the other version is used and recorded in `column_used`.
+    """
     z = np.load(path)
-    v = z["vcol_below"]
-    v = v[:, column] if v.ndim == 2 else v
-    ok = (np.isfinite(v) & (v > -9998) & (z["cloud"] == 0) &
-          (np.abs(z["time_utc_h"] - overpass_utc) <= window_h) & np.isfinite(z["lat"]) & np.isfinite(z["lon"]))
+    vv = z["vcol_below"]
+    base = (z["cloud"] == 0) & (np.abs(z["time_utc_h"] - overpass_utc) <= window_h) & \
+        np.isfinite(z["lat"]) & np.isfinite(z["lon"])
+    used = column
+    if vv.ndim == 2:
+        v = vv[:, column]
+        if not (np.isfinite(v) & (v > -9998) & base).any():
+            other = 1 - column
+            if (np.isfinite(vv[:, other]) & (vv[:, other] > -9998) & base).any():
+                used, v = other, vv[:, other]
+    else:
+        v = vv
+    ok = base & np.isfinite(v) & (v > -9998)
     day = os.path.basename(path).split("_")[2]          # ..._AIRCRAFT_20180719_R0_PM...
     return dict(day=f"{day[:4]}-{day[4:6]}-{day[6:8]}", lat=z["lat"][ok], lon=z["lon"][ok], v=v[ok],
-                t=z["time_utc_h"][ok], n_total=int(len(v)))
+                t=z["time_utc_h"][ok], n_total=int(len(v)), column_used=int(used))
 
 
 def grid_points(lon, lat, val, bounds, shape):
@@ -198,12 +211,38 @@ def compare(a):
     files = sorted(glob.glob(os.path.join(DATA, "*.npz")))
     if not files:
         sys.exit("Run `extract` first.")
-    tiles_out = []
+    cache_path = os.path.join(DATA, "_tiles_cache.json")
+    cache = {}
+    if os.path.exists(cache_path) and not a.fresh:
+        with open(cache_path) as f:
+            cache = json.load(f)
+
+    def save_cache():
+        with open(cache_path, "w") as f:
+            json.dump(_clean(cache), f)
+
+    tiles_out, skipped = [], []
     for path in files:
         fl = load_flight(path, column=a.column, window_h=a.window_h)
+        if len(fl["v"]) == 0:
+            print(f"{fl['day']}: no clear airborne pixels near the overpass, skipped")
+            continue
+        note = "" if fl["column_used"] == a.column else f" (using a-priori column {fl['column_used']}: column {a.column} is empty in this file)"
         tiles = pick_tiles(fl, km=a.tile_km, n_max=a.tiles, min_cover=a.min_cover)
-        print(f"{fl['day']}: {len(fl['v'])}/{fl['n_total']} clear pixels near overpass, {len(tiles)} tiles")
+        print(f"{fl['day']}: {len(fl['v'])}/{fl['n_total']} clear pixels near overpass, {len(tiles)} tiles{note}")
         for k, bb in enumerate(tiles, 1):
+            key = "|".join(map(str, [fl["day"], [round(x, 4) for x in bb], a.methods, footprint, fl["column_used"],
+                                     a.window_h, a.n_days, a.window_days, a.cnn_steps, bool(cnn)]))
+            if key in cache:
+                rec = cache[key]
+                if rec.get("skipped"):
+                    if fl["day"] not in skipped:
+                        skipped.append(fl["day"])
+                    print(f"  tile {k}: no Sentinel-5P overpass on {fl['day']} (cached), skipped")
+                else:
+                    tiles_out.append(rec)
+                    print(f"  tile {k}: cached")
+                continue
             t0 = time.time()
             try:
                 bands, coarse, lat, prov = gee.fetch_stack("NO2", fl["day"], bb, res_m=10,
@@ -213,6 +252,10 @@ def compare(a):
                 continue
             if prov["target_day"] != fl["day"]:
                 print(f"  tile {k}: no Sentinel-5P overpass on {fl['day']} (closest {prov['target_day']}), skipped")
+                if fl["day"] not in skipped:
+                    skipped.append(fl["day"])
+                cache[key] = {"skipped": True}
+                save_cache()
                 continue
             res = run_pipeline(bands, coarse, "NO2", methods=tuple(["bilinear"] + [m for m in methods if m != "bilinear"]),
                                factor=lat.factor, cnn_steps=a.cnn_steps, cnn_model=cnn, footprint=footprint)
@@ -223,12 +266,14 @@ def compare(a):
             preds = {"raw_1km": np.kron(obs, np.ones((4, 4)))[:H250, :W250]}
             for m, fine in res.maps.items():
                 preds[m] = block_mean_nan(fine * MOLEC_CM2_PER_MOL_M2, f250)[:H250, :W250]
-            rec = {"day": fl["day"], "bbox": [round(x, 5) for x in lat.bounds],
+            rec = {"day": fl["day"], "bbox": [round(x, 5) for x in lat.bounds], "column_used": fl["column_used"],
                    "airborne_cells_250m": int(np.isfinite(air).sum()),
                    "airborne_mean_molec_cm2": float(np.nanmean(air)),
                    "s2": prov["s2"], "s5p_days_used": len(prov["s5p_days"]),
                    "scores": {k2: score(v2, air) for k2, v2 in preds.items()}}
             tiles_out.append(rec)
+            cache[key] = _clean(rec)
+            save_cache()
             sc = rec["scores"]
             print(f"  tile {k}: {rec['airborne_cells_250m']} cells  " +
                   "  ".join(f"{m} r={sc[m]['r_250m']:.2f}/{sc[m]['r_detail_sub1km']:.2f}" for m in sc) +
@@ -240,7 +285,7 @@ def compare(a):
            "pollutant": "NO2", "footprint_cells": footprint, "tile_km": a.tile_km,
            "overpass_window_utc_h": [17.75 - a.window_h, 17.75 + a.window_h],
            "cnn": "pretrained on Mumbai (no New York or airborne training)" if cnn else "trained online per tile",
-           "tiles": tiles_out}
+           "tiles": tiles_out, "flights_without_overpass": skipped}
     write_results(out)
 
 
@@ -309,6 +354,21 @@ def write_results(out):
             print(f"  {m:9s} {fmt(s['r_250m_median'])} {fmt(s['r_detail_sub1km_median'])} {fmt(s['r_1km_median'])}"
                   f"  {s.get('r_250m_wins_vs_bilinear', '')}")
     print("wrote", path)
+    refresh_docs()
+
+
+def refresh_docs():
+    """Re-fill the auto-generated results tables in README.md and docs/VALIDATION.md."""
+    try:
+        import importlib.util
+        path = os.path.join(os.path.join(ROOT, "validation"), "report.py")
+        spec = importlib.util.spec_from_file_location("report", path)
+        rep = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(rep)
+        for doc in ("README.md", os.path.join("docs", "VALIDATION.md")):
+            rep.fill(os.path.join(rep.ROOT, doc))
+    except Exception as e:  # noqa: BLE001  (docs refresh must never break a validation run)
+        print("README/VALIDATION tables not refreshed:", e)
 
 
 def resummarize(_a):
@@ -335,6 +395,7 @@ def main():
     c.add_argument("--n-days", type=int, default=20)
     c.add_argument("--window-days", type=int, default=45)
     c.add_argument("--cnn-steps", type=int, default=150)
+    c.add_argument("--fresh", action="store_true", help="ignore tiles saved by an earlier run")
     a = ap.parse_args()
     {"extract": extract, "compare": compare, "summary": resummarize}[a.cmd](a)
 

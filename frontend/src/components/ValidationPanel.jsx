@@ -52,17 +52,18 @@ export default function ValidationPanel({ pollutant }) {
             Mumbai: no New York data was used for training.
             {pollutant !== 'NO2' ? ' This test exists for NO₂ only.' : ''}
           </p>
-          <Table rows={air.summary_resolved || air.summary} cols={[
+          <Table rows={air.summary} cols={[
             { key: 'r_250m_median', label: 'r 250 m', title: 'Correlation with the aircraft map at 250 m (median over tiles)', fmt: num },
             { key: 'r_1km_median', label: 'r 1 km', title: 'Correlation at 1 km', fmt: num },
             { key: 'r_detail_sub1km_median', label: 'Detail r', title: 'Correlation of the detail inside each 1 km cell', fmt: num },
             { key: 'r_250m_wins_vs_bilinear', label: 'Beats interp.', title: 'Tiles where the method beats interpolation at 250 m', fmt: (x) => x ?? '–' },
           ]} />
           <p className="hint">
-            {air.summary_resolved?.cnn?.tiles} tiles where the satellite resolves the pollution pattern (raw 1 km r ≥ 0.3).
-            Over all {air.summary?.cnn?.tiles} tiles, the CNN beats interpolation in {air.summary?.cnn?.r_250m_wins_vs_bilinear},
-            {' '}with 1 km r {num(air.summary?.cnn?.r_1km_median)} vs {num(air.summary?.bilinear?.r_1km_median)}; on low-NO₂ days
-            no method finds a pattern the satellite cannot see.
+            Median over {air.summary?.cnn?.tiles} tiles of 8 × 8 km. In New York the Mumbai-trained CNN is about as good as
+            interpolation at 250 m and slightly better at 1 km: its fine detail does not yet transfer reliably to a
+            different city and season. Where the satellite already matches the aircraft well
+            ({air.summary_resolved?.cnn?.tiles} tiles), interpolation is hard to beat (r at 250 m:
+            {' '}{num(air.summary_resolved?.cnn?.r_250m_median)} CNN vs {num(air.summary_resolved?.bilinear?.r_250m_median)} interpolation).
           </p>
         </>
       ) : <p className="hint">Not run yet. See <code>validation/airborne/airborne.py</code>.</p>}

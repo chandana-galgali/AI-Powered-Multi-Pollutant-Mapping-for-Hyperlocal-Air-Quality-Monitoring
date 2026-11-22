@@ -1,0 +1,52 @@
+{
+ "days": [
+  "2025-11-20",
+  "2025-12-05",
+  "2025-12-20",
+  "2026-01-05",
+  "2026-01-20"
+ ],
+ "res_m": 10,
+ "rows": [
+  {
+   "n": 1,
+   "name": "Tata Power Trombay (coal, 274 m stack)",
+   "source": "Global Energy Monitor",
+   "pct_10m": 91.73791666666666,
+   "pct_1km": 86.11111111111111,
+   "ratio_10m": 1.5873571637547457,
+   "ratio_1km": 1.2846891453092388,
+   "days_hotspot_1km": 0
+  },
+  {
+   "n": 2,
+   "name": "BPCL Mumbai Refinery, Mahul",
+   "source": "Global Energy Monitor",
+   "pct_10m": 91.73763888888888,
+   "pct_1km": 80.55555555555556,
+   "ratio_10m": 1.5873404076511755,
+   "ratio_1km": 1.200473363363068,
+   "days_hotspot_1km": 5
+  },
+  {
+   "n": 3,
+   "name": "HPCL Mumbai Refinery, Mahul",
+   "source": "Climate TRACE",
+   "pct_10m": 87.0463888888889,
+   "pct_1km": 76.38888888888889,
+   "ratio_10m": 1.4377733684904206,
+   "ratio_1km": 1.1764310888702834,
+   "days_hotspot_1km": 5
+  },
+  {
+   "n": 4,
+   "name": "RCF Trombay (fertilisers)",
+   "source": "Global Energy Monitor",
+   "pct_10m": 99.79041666666667,
+   "pct_1km": 66.66666666666666,
+   "ratio_10m": 3.3876174147654985,
+   "ratio_1km": 1.1152701284310893,
+   "days_hotspot_1km": 5
+  }
+ ]
+}

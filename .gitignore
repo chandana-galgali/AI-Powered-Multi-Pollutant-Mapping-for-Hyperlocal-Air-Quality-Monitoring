@@ -14,3 +14,4 @@ key*.json
 # airborne validation data (large, downloaded separately)
 validation/airborne/listos2018/
 *.h5
+validation/case_study/data/

@@ -88,12 +88,11 @@ Results go to `validation/results/` (`ground_<POL>.json`, plus `ground_<POL>_pai
 matched reading), are served by `GET /api/validation`, and appear in the dashboard's
 "How accurate is this?" panel. Commit the result files so the deployed site shows them.
 
-**Findings (2025-26 season).** NO₂: 29 stations, 2248 readings. SO₂: 27 stations, 2119 readings. CO: 28 stations, 1507 readings.
-In every case the median daily correlation across stations is about 0.1 or lower, *including for the raw
-satellite* (NO₂ 0.09, SO₂ 0.06, CO −0.02). Skill against the raw satellite is about 0 for every method. Co-located
-stations often disagree with each other. Conclusion: surface stations cannot score a column map in Mumbai, which
-is why check 4 exists. Two caveats about the files: the CO AQI-band accuracy of 100 % is meaningless because every reading is in the *Good*
-band; O₃ and aerosol index were not run.
+**Findings (2025-26 season).** In every pollutant tested, the median daily correlation across stations is
+about 0.1 or lower, *including for the raw satellite*, and skill against the raw satellite is about 0 for every
+method (numbers: README, *Validation*, check 4). Co-located stations often disagree with each other.
+Conclusion: surface stations cannot score a column map in Mumbai, which is why check 4 exists. Caveat about
+the files: the CO AQI-band accuracy of 100 % is meaningless because every reading is in the *Good* band.
 
 ## 4. Airborne column maps: `python validation/airborne/airborne.py compare`
 
@@ -101,8 +100,9 @@ band; O₃ and aerosol index were not run.
 (DOI 10.5067/Suborbital/LISTOS/AircraftRemoteSensing_NASAAircraft_Data_1, Earthdata collection
 `C3880706941-LARC_CLOUD`). Download with a free NASA Earthdata account. The afternoon GCAS NO₂ files
 (`LISTOS-GCAS-NO2_NASA-AIRCRAFT_2018MMDD_R0_PM_250MX250M.h5`, 0.5–0.8 GB each) go in
-`validation/airborne/listos2018/`, which git ignores. Used so far: 19 and 20 Jul and 15 Aug 2018. 5 Aug has no
-Sentinel-5P overpass in Earth Engine. More are available: 6, 16, 24, 28, 29 Aug and 6 Sep.
+`validation/airborne/listos2018/`, which git ignores. <!-- AUTO:airborne_flights -->
+Used so far: 2 Jul, 19 Jul, 20 Jul, 6 Aug, 15 Aug, 16 Aug, 24 Aug, 28 Aug, 29 Aug, 6 Sep 2018. 5 Aug had no Sentinel-5P overpass in Earth Engine.
+<!-- /AUTO:airborne_flights -->
 
 **Steps.**
 1. `airborne.py extract` reduces each HDF5 file to a small `.npz` with these fields: latitude, longitude, time, cloud flag and
@@ -131,17 +131,19 @@ The aircraft data is used **only for scoring**. Nothing is trained or tuned on i
 `summary` covers all tiles. `summary_resolved` covers only tiles where the raw satellite itself tracks the aircraft
 (r ≥ 0.3); that selection is independent of the downscaling methods.
 
-**Results** (3 flights, 18 tiles):
+<!-- AUTO:airborne_doc -->
+**Results** (10 flights, 60 tiles):
 
-| | All 18 tiles: r 250 m / 1 km | 11 resolved tiles: r 250 m / 1 km / detail | Beats interpolation (all / resolved) |
+| | All 60 tiles: r 250 m / 1 km | 30 resolved tiles: r 250 m / 1 km / detail | Beats interpolation (all · resolved) |
 |---|---|---|---|
-| Sentinel-5P as is | 0.41 / 0.51 | 0.48 / 0.65 / – | – |
-| Interpolation | 0.42 / 0.54 | 0.49 / 0.66 / 0.06 | – |
-| Linear regression | 0.34 / 0.55 | 0.45 / 0.67 / 0.12 | 9/18 · 5/11 |
-| Multi-scale regression | 0.33 / 0.54 | 0.46 / 0.63 / 0.07 | 8/18 · 4/11 |
-| **Hybrid + CNN (Mumbai-trained)** | **0.42 / 0.60** | **0.59 / 0.73 / 0.10** | **12/18 · 8/11** |
+| Sentinel-5P as is (1 km) | 0.28 / 0.48 | 0.55 / 0.67 / – | – |
+| Interpolation (bilinear) | 0.29 / 0.50 | 0.57 / 0.70 / 0.09 | – |
+| Linear regression | 0.30 / 0.51 | 0.45 / 0.65 / 0.03 | 28/60 · 7/30 |
+| Multi-scale regression | 0.27 / 0.49 | 0.46 / 0.63 / 0.02 | 24/60 · 4/30 |
+| **Hybrid regression + CNN (Mumbai-trained)** | 0.28 / 0.53 | 0.53 / 0.73 / 0.06 | 33/60 · 13/30 |
 
-Sign tests: 250 m wins p ≈ 0.12 (all) and 0.11 (resolved); sub-1 km detail wins 13/18, p ≈ 0.05.
+Sign tests (CNN vs interpolation): 250 m p = 0.26 (all), 0.82 (resolved); sub-1 km detail 33/60, p = 0.26.
+<!-- /AUTO:airborne_doc -->
 
 **Limits.**
 - The test covers one city (New York) and one pollutant (NO₂), with an older Sentinel-5P processor (v1.2).

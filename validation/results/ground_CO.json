@@ -1,0 +1,278 @@
+{
+ "n_pairs": 1507,
+ "n_stations": 28,
+ "n_days": 93,
+ "proxy": false,
+ "predictors": {
+  "coarse": {
+   "daily_spatial_r_median": -0.023087929222087328,
+   "daily_spatial_spearman_median": -0.027397545898633385,
+   "days_with_4plus_stations": 88,
+   "pooled_r": 0.18442649309167208,
+   "temporal_r_median": 0.22993989563665093,
+   "stations_with_8plus_days": 28,
+   "hotspot_f1_top_quartile": 0.22859848484848486,
+   "rmse_ug_m3": 0.5075534831441976,
+   "mae_ug_m3": 0.3310521209952209,
+   "bias_ug_m3": -0.0002872276330243242,
+   "normalised_mean_bias": -0.0005108240241555944,
+   "r2_calibrated": 0.014767290510734887,
+   "n_calibrated": 1507,
+   "aqi_category_accuracy": 1.0,
+   "skill_vs_raw_1km": 0.0
+  },
+  "bilinear": {
+   "daily_spatial_r_median": -0.0261178003627123,
+   "daily_spatial_spearman_median": -0.040988278733043025,
+   "days_with_4plus_stations": 88,
+   "pooled_r": 0.19041303456793104,
+   "temporal_r_median": 0.23428612125163034,
+   "stations_with_8plus_days": 28,
+   "hotspot_f1_top_quartile": 0.23863636363636365,
+   "rmse_ug_m3": 0.5070013235435604,
+   "mae_ug_m3": 0.3307211272075477,
+   "bias_ug_m3": -0.00025904115758271446,
+   "normalised_mean_bias": -0.0004606953904296514,
+   "r2_calibrated": 0.016909763411663947,
+   "n_calibrated": 1507,
+   "aqi_category_accuracy": 1.0,
+   "skill_vs_raw_1km": 0.00108788456581288
+  },
+  "lr": {
+   "daily_spatial_r_median": -0.03990920147859399,
+   "daily_spatial_spearman_median": -0.020419749680134144,
+   "days_with_4plus_stations": 88,
+   "pooled_r": 0.19311735999227847,
+   "temporal_r_median": 0.22248622136297536,
+   "stations_with_8plus_days": 28,
+   "hotspot_f1_top_quartile": 0.20075757575757577,
+   "rmse_ug_m3": 0.5067878878830865,
+   "mae_ug_m3": 0.3299894557681835,
+   "bias_ug_m3": -0.00016597819841676335,
+   "normalised_mean_bias": -0.00029518626165807174,
+   "r2_calibrated": 0.017737305030159578,
+   "n_calibrated": 1507,
+   "aqi_category_accuracy": 1.0,
+   "skill_vs_raw_1km": 0.0015084031270328202
+  },
+  "mslr": {
+   "daily_spatial_r_median": -0.03162686639851624,
+   "daily_spatial_spearman_median": -0.023178934903099954,
+   "days_with_4plus_stations": 88,
+   "pooled_r": 0.19604390006701108,
+   "temporal_r_median": 0.22544345584254105,
+   "stations_with_8plus_days": 28,
+   "hotspot_f1_top_quartile": 0.2096590909090909,
+   "rmse_ug_m3": 0.5064546412520495,
+   "mae_ug_m3": 0.32948663660944577,
+   "bias_ug_m3": -0.0002337304191207593,
+   "normalised_mean_bias": -0.00041568115158588815,
+   "r2_calibrated": 0.01902868597766738,
+   "n_calibrated": 1507,
+   "aqi_category_accuracy": 1.0,
+   "skill_vs_raw_1km": 0.002164977541560642
+  },
+  "cnn": {
+   "daily_spatial_r_median": -0.04491417717392758,
+   "daily_spatial_spearman_median": -0.034483061723241296,
+   "days_with_4plus_stations": 88,
+   "pooled_r": 0.1947117969935721,
+   "temporal_r_median": 0.22440058375760247,
+   "stations_with_8plus_days": 28,
+   "hotspot_f1_top_quartile": 0.23087121212121212,
+   "rmse_ug_m3": 0.5065965909423122,
+   "mae_ug_m3": 0.3300253680836664,
+   "bias_ug_m3": -0.0002353039677836387,
+   "normalised_mean_bias": -0.00041847965133924803,
+   "r2_calibrated": 0.01847871337513285,
+   "n_calibrated": 1507,
+   "aqi_category_accuracy": 1.0,
+   "skill_vs_raw_1km": 0.0018853031920056385
+  }
+ },
+ "pollutant": "CO",
+ "source": "OpenAQ (CPCB/MPCB stations)",
+ "period": [
+  "2025-11-01",
+  "2026-02-28"
+ ],
+ "stations": [
+  {
+   "id": "6927",
+   "name": "Colaba, Mumbai - MPCB",
+   "lat": 18.91,
+   "lon": 72.82
+  },
+  {
+   "id": "6945",
+   "name": "Kurla, Mumbai - MPCB",
+   "lat": 19.0863,
+   "lon": 72.8888
+  },
+  {
+   "id": "6948",
+   "name": "Chhatrapati Shivaji Intl. Airport (T2), Mumbai - MPCB",
+   "lat": 19.10078,
+   "lon": 72.87462
+  },
+  {
+   "id": "6956",
+   "name": "Powai, Mumbai - MPCB",
+   "lat": 19.1375,
+   "lon": 72.915056
+  },
+  {
+   "id": "6959",
+   "name": "Siddharth Nagar-Worli, Mumbai - IITM",
+   "lat": 19.000083,
+   "lon": 72.813993
+  },
+  {
+   "id": "6965",
+   "name": "Borivali East, Mumbai - MPCB",
+   "lat": 19.227474,
+   "lon": 72.864394
+  },
+  {
+   "id": "6967",
+   "name": "Sion, Mumbai - MPCB",
+   "lat": 19.047,
+   "lon": 72.8746
+  },
+  {
+   "id": "6987",
+   "name": "Vile Parle West, Mumbai - MPCB",
+   "lat": 19.10861,
+   "lon": 72.83622
+  },
+  {
+   "id": "11606",
+   "name": "Borivali East, Mumbai - IITM",
+   "lat": 19.23241,
+   "lon": 72.86895
+  },
+  {
+   "id": "11611",
+   "name": "Malad West, Mumbai - IITM",
+   "lat": 19.19709,
+   "lon": 72.82204
+  },
+  {
+   "id": "12024",
+   "name": "Chakala-Andheri East, Mumbai - IITM",
+   "lat": 19.11074,
+   "lon": 72.86084
+  },
+  {
+   "id": "12039",
+   "name": "Khindipada-Bhandup West, Mumbai - IITM",
+   "lat": 19.164394,
+   "lon": 72.928297
+  },
+  {
+   "id": "12040",
+   "name": "Mulund West, Mumbai - MPCB",
+   "lat": 19.175,
+   "lon": 72.9419
+  },
+  {
+   "id": "12044",
+   "name": "Kandivali East, Mumbai - MPCB",
+   "lat": 19.2058,
+   "lon": 72.8682
+  },
+  {
+   "id": "3409322",
+   "name": "Pimpleshwar Mandir, Thane - MPCB",
+   "lat": 19.192056,
+   "lon": 72.9585188
+  },
+  {
+   "id": "3409323",
+   "name": "Worli, Mumbai - MPCB",
+   "lat": 18.9936162,
+   "lon": 72.8128113
+  },
+  {
+   "id": "3409328",
+   "name": "Bandra Kurla Complex, Mumbai - IITM",
+   "lat": 19.0627,
+   "lon": 72.84614
+  },
+  {
+   "id": "3409329",
+   "name": "Deonar, Mumbai - IITM",
+   "lat": 19.04946,
+   "lon": 72.923
+  },
+  {
+   "id": "3409469",
+   "name": "Kasarvadavali, Thane - MPCB",
+   "lat": 19.26777,
+   "lon": 72.97182
+  },
+  {
+   "id": "3409472",
+   "name": "Upvan Fort, Thane - MPCB",
+   "lat": 19.222279,
+   "lon": 72.957979
+  },
+  {
+   "id": "3409479",
+   "name": "Mindspace-Malad West, Mumbai - MPCB",
+   "lat": 19.1878657,
+   "lon": 72.8304069
+  },
+  {
+   "id": "3409482",
+   "name": "Bandra Kurla Complex, Mumbai - MPCB",
+   "lat": 19.065931,
+   "lon": 72.862131
+  },
+  {
+   "id": "3409483",
+   "name": "Chembur, Mumbai - MPCB",
+   "lat": 19.0364585,
+   "lon": 72.8954371
+  },
+  {
+   "id": "3409486",
+   "name": "Kherwadi_Bandra East, Mumbai - MPCB",
+   "lat": 19.0632143,
+   "lon": 72.8456324
+  },
+  {
+   "id": "3409510",
+   "name": "Byculla, Mumbai - BMC",
+   "lat": 18.9767,
+   "lon": 72.838
+  },
+  {
+   "id": "3409511",
+   "name": "Shivaji Nagar, Mumbai - BMC",
+   "lat": 19.060498,
+   "lon": 72.923356
+  },
+  {
+   "id": "3409512",
+   "name": "Kandivali West, Mumbai - BMC",
+   "lat": 19.215859,
+   "lon": 72.831718
+  },
+  {
+   "id": "3409513",
+   "name": "Sewri, Mumbai - BMC",
+   "lat": 19.000084,
+   "lon": 72.85673
+  },
+  {
+   "id": "3409514",
+   "name": "Ghatkopar, Mumbai - BMC",
+   "lat": 19.083694,
+   "lon": 72.920967
+  }
+ ],
+ "cnn": "pretrained",
+ "overpass_window_ist": "13:00-15:00",
+ "generated_utc": "2026-11-22T06:24:16+00:00"
+}
