@@ -5,13 +5,19 @@
 "Training and validation period" for the reasons (single Sentinel-5P processor version, no COVID-19
 lockdown, no monsoon cloud, held-out test season).
 
-Three complementary checks, from most controlled to most real. All three run without building any sensors.
+Four complementary checks. None needs any sensors to be built.
 
 | Check | Data | Answers |
 |---|---|---|
 | 1. Simulated scene | known 10 m field | Can the method recover 10 m detail at all? |
 | 2. Up-scaling test | real Sentinel-5P + Sentinel-2 | Does the learned surface relationship add real detail? |
-| 3. Ground stations | CPCB / MPCB monitors (via OpenAQ or CSV) | Does the 10 m map agree with what people breathe better than the raw satellite? |
+| 3. Ground stations | CPCB / MPCB monitors (via OpenAQ or CSV) | Does the map agree with surface readings? (different quantity, see the findings) |
+| **4. Airborne column maps** | NASA GCAS NO₂ columns at 250 m (LISTOS 2018, New York) | **Does the map match an independent high-resolution measurement of the same quantity?** |
+
+**Why check 4 is the reference.** Sentinel-5P measures the column, i.e. all the gas above a point; stations measure the
+air at nose height. A column map can only be checked properly against a column measurement at higher
+resolution. Only aircraft imaging spectrometers provide one over a whole city. None has flown over Mumbai, so
+check 4 runs the system unchanged on New York, where NASA flew during Sentinel-5P overpasses.
 
 ## 1. Simulated scene: `python validation/run_validation.py`
 
@@ -81,3 +87,68 @@ with PM2.5 as a proxy (flagged in the output). It's a different quantity, so exp
 Results go to `validation/results/` (`ground_<POL>.json`, plus `ground_<POL>_pairs.json` with every
 matched reading), are served by `GET /api/validation`, and appear in the dashboard's
 "How accurate is this?" panel. Commit the result files so the deployed site shows them.
+
+**Findings (2025-26 season).** NO₂: 29 stations, 2248 readings. SO₂: 27 stations, 2119 readings. CO: 28 stations, 1507 readings.
+In every case the median daily correlation across stations is about 0.1 or lower, *including for the raw
+satellite* (NO₂ 0.09, SO₂ 0.06, CO −0.02). Skill against the raw satellite is about 0 for every method. Co-located
+stations often disagree with each other. Conclusion: surface stations cannot score a column map in Mumbai, which
+is why check 4 exists. Two caveats about the files: the CO AQI-band accuracy of 100 % is meaningless because every reading is in the *Good*
+band; O₃ and aerosol index were not run.
+
+## 4. Airborne column maps: `python validation/airborne/airborne.py compare`
+
+**Data.** NASA LISTOS 2018, *LISTOS NASA Aircraft Remote Sensing Data*
+(DOI 10.5067/Suborbital/LISTOS/AircraftRemoteSensing_NASAAircraft_Data_1, Earthdata collection
+`C3880706941-LARC_CLOUD`). Download with a free NASA Earthdata account. The afternoon GCAS NO₂ files
+(`LISTOS-GCAS-NO2_NASA-AIRCRAFT_2018MMDD_R0_PM_250MX250M.h5`, 0.5–0.8 GB each) go in
+`validation/airborne/listos2018/`, which git ignores. Used so far: 19 and 20 Jul and 15 Aug 2018. 5 Aug has no
+Sentinel-5P overpass in Earth Engine. More are available: 6, 16, 24, 28, 29 Aug and 6 Sep.
+
+**Steps.**
+1. `airborne.py extract` reduces each HDF5 file to a small `.npz` with these fields: latitude, longitude, time, cloud flag and
+   `NO2_VCOLBELOWAIRCRAFT`. That is the column below the ~9 km flight altitude, effectively the tropospheric column. The
+   default is the WRF-Chem 4 km a-priori version (`--column 1`); NASA's README notes the NAM-CMAQ version
+   under-estimates free-troposphere NO₂. The two versions correlate at r = 0.97–1.0. The reader `h5read.py` falls
+   back to pure-Python `pyfive` where compiled HDF5 libraries are blocked.
+2. Keep pixels flagged cloud-free and within ±1.5 h of the ~17:45 UTC overpass.
+3. Pick up to 6 non-overlapping 8 × 8 km tiles per flight, each with ≥ 60 % aircraft coverage at 250 m.
+4. Run the live pipeline at 10 m on each tile for the flight date. It uses Sentinel-5P OFFL, a Sentinel-2 L2A composite and the
+   2018 Sentinel-5P footprint (7 × 3.5 km, i.e. 7 × 4 cells; the pixel shrank to 5.5 × 3.5 km in August 2019). The CNN is
+   the Mumbai-trained model.
+5. Average each map to the 250 m grid and compare with the aircraft grid of the same tile.
+
+The aircraft data is used **only for scoring**. Nothing is trained or tuned on it.
+
+| Metric | Meaning |
+|---|---|
+| `r_250m` | spatial correlation with the aircraft map at 250 m |
+| `r_1km` | the same after averaging both to 1 km |
+| `r_detail_sub1km` | correlation of each 250 m cell's deviation from its 1 km block mean. This is the detail downscaling must add; it is undefined for the raw 1 km satellite |
+| `spread_ratio` | map contrast / aircraft contrast (std) |
+| `mean_ratio` | map level / aircraft level |
+| `*_wins_vs_bilinear`, `*_sign_test_p` | tiles where a method beats interpolation, and a one-sided sign test |
+
+`summary` covers all tiles. `summary_resolved` covers only tiles where the raw satellite itself tracks the aircraft
+(r ≥ 0.3); that selection is independent of the downscaling methods.
+
+**Results** (3 flights, 18 tiles):
+
+| | All 18 tiles: r 250 m / 1 km | 11 resolved tiles: r 250 m / 1 km / detail | Beats interpolation (all / resolved) |
+|---|---|---|---|
+| Sentinel-5P as is | 0.41 / 0.51 | 0.48 / 0.65 / – | – |
+| Interpolation | 0.42 / 0.54 | 0.49 / 0.66 / 0.06 | – |
+| Linear regression | 0.34 / 0.55 | 0.45 / 0.67 / 0.12 | 9/18 · 5/11 |
+| Multi-scale regression | 0.33 / 0.54 | 0.46 / 0.63 / 0.07 | 8/18 · 4/11 |
+| **Hybrid + CNN (Mumbai-trained)** | **0.42 / 0.60** | **0.59 / 0.73 / 0.10** | **12/18 · 8/11** |
+
+Sign tests: 250 m wins p ≈ 0.12 (all) and 0.11 (resolved); sub-1 km detail wins 13/18, p ≈ 0.05.
+
+**Limits.**
+- The test covers one city (New York) and one pollutant (NO₂), with an older Sentinel-5P processor (v1.2).
+- On the 7 low-NO₂ tiles, where columns are close to instrument noise, no method finds a pattern.
+- The maps are smoother than the aircraft (spread ratio 0.4–0.65), and sub-1 km detail is weak.
+- NASA notes that parks and bright buildings can leave small artifacts in the aircraft retrieval. Our model also uses surface
+  brightness, so part of the agreement at the finest scale may be shared artifact.
+
+`python validation/airborne/airborne.py summary` re-prints the saved results without Earth Engine.
+

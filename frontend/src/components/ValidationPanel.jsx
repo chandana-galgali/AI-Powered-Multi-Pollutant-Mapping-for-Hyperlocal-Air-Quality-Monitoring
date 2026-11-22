@@ -2,10 +2,10 @@ import { useEffect, useState } from 'react'
 import { api } from '../api.js'
 
 const NAMES = {
-  coarse: 'Sentinel-5P as is (1 km)', bilinear: 'Interpolation', lr: 'Linear regression',
+  coarse: 'Sentinel-5P as is (1 km)', raw_1km: 'Sentinel-5P as is (1 km)', bilinear: 'Interpolation', lr: 'Linear regression',
   mslr: 'Multi-scale regression', rf: 'Random forest', cnn: 'CNN',
 }
-const ORDER = ['coarse', 'bilinear', 'lr', 'mslr', 'rf', 'cnn']
+const ORDER = ['coarse', 'raw_1km', 'bilinear', 'lr', 'mslr', 'rf', 'cnn']
 const SHORT = { NO2: 'NO₂', SO2: 'SO₂', CO: 'CO', HCHO: 'HCHO', O3: 'O₃', AER_AI: 'Aerosol' }
 const num = (v, d = 2) => (v == null || Number.isNaN(v) ? '–' : v.toFixed(d))
 const pct = (v) => (v == null || Number.isNaN(v) ? '–' : `${Math.round(v * 100)}%`)
@@ -37,11 +37,54 @@ export default function ValidationPanel({ pollutant }) {
   const g = v.ground?.[pollutant]
   const u = v.upscaling?.[pollutant]
   const sim = v.simulation
+  const air = v.airborne?.NO2
   return (
     <details className="panel" open>
       <summary>How accurate is this? ({SHORT[pollutant] || pollutant})</summary>
 
-      <h4>Against ground monitoring stations</h4>
+      <h4>Against NASA airborne NO₂ maps (New York)</h4>
+      {air ? (
+        <>
+          <p className="hint">
+            The only street-scale measurement of the same quantity the satellite sees (the NO₂ column) comes from
+            aircraft. None has flown over Mumbai, so the system was run on New York for {air.flights?.length} NASA
+            flights in 2018 (LISTOS) and compared with the aircraft maps at 250 m. The CNN is the one trained on
+            Mumbai: no New York data was used for training.
+            {pollutant !== 'NO2' ? ' This test exists for NO₂ only.' : ''}
+          </p>
+          <Table rows={air.summary_resolved || air.summary} cols={[
+            { key: 'r_250m_median', label: 'r 250 m', title: 'Correlation with the aircraft map at 250 m (median over tiles)', fmt: num },
+            { key: 'r_1km_median', label: 'r 1 km', title: 'Correlation at 1 km', fmt: num },
+            { key: 'r_detail_sub1km_median', label: 'Detail r', title: 'Correlation of the detail inside each 1 km cell', fmt: num },
+            { key: 'r_250m_wins_vs_bilinear', label: 'Beats interp.', title: 'Tiles where the method beats interpolation at 250 m', fmt: (x) => x ?? '–' },
+          ]} />
+          <p className="hint">
+            {air.summary_resolved?.cnn?.tiles} tiles where the satellite resolves the pollution pattern (raw 1 km r ≥ 0.3).
+            Over all {air.summary?.cnn?.tiles} tiles, the CNN beats interpolation in {air.summary?.cnn?.r_250m_wins_vs_bilinear},
+            {' '}with 1 km r {num(air.summary?.cnn?.r_1km_median)} vs {num(air.summary?.bilinear?.r_1km_median)}; on low-NO₂ days
+            no method finds a pattern the satellite cannot see.
+          </p>
+        </>
+      ) : <p className="hint">Not run yet. See <code>validation/airborne/airborne.py</code>.</p>}
+
+      <h4>Up-scaling test on real Sentinel-5P (Mumbai)</h4>
+      {u ? (
+        <>
+          <p className="hint">Real 1 km data averaged to {u.k_km} km, downscaled back to 1 km and compared with the real
+            1 km values ({u.days} overpasses). "Detail r" scores only the detail inside each {u.k_km} km block.</p>
+          <Table rows={u.methods} cols={[
+            { key: 'spatial_r_median', label: 'r', title: 'Spatial correlation with real 1 km values', fmt: num },
+            { key: 'detail_r_median', label: 'Detail r', title: 'Correlation of the sub-block detail', fmt: num },
+            { key: 'nrmse', label: 'NRMSE', title: 'RMSE / mean', fmt: num, lower: true },
+            { key: 'skill_vs_bilinear', label: 'Skill', title: '1 − RMSE / RMSE of interpolation', fmt: num },
+          ]} />
+        </>
+      ) : <p className="hint">Not run yet. Run <code>validation/validate.py upscaling</code>.</p>}
+
+      <h4>Against surface monitoring stations (different quantity)</h4>
+      <p className="hint">Stations measure the air at street level; the satellite measures the whole column above.
+        The two are only loosely related, and neighbouring stations often disagree with each other, so this is a
+        consistency check, not an accuracy score.</p>
       {g ? (
         <>
           <p className="hint">
@@ -62,20 +105,6 @@ export default function ValidationPanel({ pollutant }) {
         <p className="hint">Not run yet for this pollutant. Run <code>validation/validate.py ground</code> (see docs/VALIDATION.md).
           {pollutant === 'HCHO' ? ' Formaldehyde is not monitored at ground stations.' : ''}</p>
       )}
-
-      <h4>Up-scaling test on real Sentinel-5P</h4>
-      {u ? (
-        <>
-          <p className="hint">Real 1 km data averaged to {u.k_km} km, downscaled back to 1 km and compared with the real
-            1 km values ({u.days} overpasses). "Detail r" scores only the detail inside each {u.k_km} km block.</p>
-          <Table rows={u.methods} cols={[
-            { key: 'spatial_r_median', label: 'r', title: 'Spatial correlation with real 1 km values', fmt: num },
-            { key: 'detail_r_median', label: 'Detail r', title: 'Correlation of the sub-block detail', fmt: num },
-            { key: 'nrmse', label: 'NRMSE', title: 'RMSE / mean', fmt: num, lower: true },
-            { key: 'skill_vs_bilinear', label: 'Skill', title: '1 − RMSE / RMSE of interpolation', fmt: num },
-          ]} />
-        </>
-      ) : <p className="hint">Not run yet. Run <code>validation/validate.py upscaling</code>.</p>}
 
       {sim?.[pollutant] && (
         <>

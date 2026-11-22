@@ -14,7 +14,7 @@ Endpoints
               "area": "chembur_trombay"}     or   "bbox": [w, s, e, n]  (+ optional "res_m": 10|20|25)
   GET  /api/jobs/<id>                  progress / result (map overlays, stats, hotspots, provenance)
   GET  /api/jobs/<id>/geotiff          10 m result as GeoTIFF   (…/coarse_geotiff for the 1 km input)
-  GET  /api/validation                 accuracy: simulation, ground stations, up-scaling test
+  GET  /api/validation                 accuracy: airborne (NASA, New York), up-scaling, ground stations, simulation
 """
 from __future__ import annotations
 
@@ -95,8 +95,9 @@ def job_file(jid, name):
 
 @app.get("/api/validation")
 def validation():
-    """simulation: known 10 m field · ground: CPCB/MPCB stations · upscaling: real S5P 4 km → 1 km."""
-    out = {"simulation": None, "ground": {}, "upscaling": {}}
+    """airborne: NASA GCAS NO2 column maps (New York) · upscaling: real S5P 4 km → 1 km ·
+    ground: CPCB/MPCB surface stations · simulation: known 10 m field."""
+    out = {"simulation": None, "ground": {}, "upscaling": {}, "airborne": {}}
     sim = os.path.join(VALIDATION_DIR, "simulation", "metrics.json")
     if os.path.exists(sim):
         with open(sim) as f:
@@ -105,7 +106,7 @@ def validation():
     for name in sorted(os.listdir(res)) if os.path.isdir(res) else []:
         if name.endswith(".json") and not name.endswith("_pairs.json"):
             kind, _, pol = name[:-5].partition("_")
-            if kind in ("ground", "upscaling"):
+            if kind in ("ground", "upscaling", "airborne"):
                 with open(os.path.join(res, name)) as f:
                     out[kind][pol] = json.load(f)
     return jsonify(clean_json(out))

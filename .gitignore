@@ -10,3 +10,7 @@ secrets/
 key*.json
 *-key.json
 .cache/
+
+# airborne validation data (large, downloaded separately)
+validation/airborne/listos2018/
+*.h5
