@@ -3,7 +3,9 @@ services:
   - type: web
     name: hyperlocal-air-quality
     runtime: docker
-    plan: standard          # 2 GB RAM. On 512 MB plans set MAX_PIXELS=900000.
+    # free: 512 MB RAM, sleeps after 15 min idle (first visit then takes ~1 min), slow CPU.
+    # For faster maps and bigger areas switch to "standard" (2 GB) and set MAX_PIXELS to 1600000.
+    plan: free
     healthCheckPath: /api/health
     autoDeploy: true
     envVars:
@@ -12,4 +14,4 @@ services:
       - key: GEE_PROJECT                # your Earth Engine Cloud project id
         sync: false
       - key: MAX_PIXELS
-        value: "1600000"
+        value: "900000"
