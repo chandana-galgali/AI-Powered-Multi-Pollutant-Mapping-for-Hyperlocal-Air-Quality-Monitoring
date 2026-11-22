@@ -63,6 +63,27 @@ Why this window:
 Sentinel-5P has only flown since late 2017, so earlier years don't exist for this sensor. Maps can be made for any date since
 2018, but they are most reliable for dry-season dates; monsoon maps rest on few cloud-free overpasses.
 
+## 🧠 Training results (real Sentinel data)
+
+Trained on 6 areas of Mumbai (~450 km² at 10 m) × 3 dry seasons (2022-23, 2023-24, 2024-25) = 18 area-seasons,
+~90–120 Sentinel-5P overpasses each, 600 steps per pollutant. The score is the mean daily correlation between each
+model's map (as Sentinel-5P would see it, through its ~5 × 4 km footprint) and the real observation of that day:
+
+| Pollutant | Area-days | Regression alone | **Hybrid regression + CNN** |
+|---|---|---|---|
+| NO₂ | 2000 | 0.372 | **0.398** |
+| Aerosol index | 2153 | 0.392 | **0.400** |
+| CO | 1656 | 0.093 | **0.107** |
+| O₃ | 2153 | 0.077 | **0.080** |
+| HCHO | 2092 | 0.057 | **0.060** |
+| SO₂ | 2004 | 0.052 | **0.054** |
+
+The CNN correction improves on the regression for every pollutant. NO₂ and aerosols are clearly tied to what Sentinel-2
+sees on the ground (roads, industry, built-up areas, bare land), so their 10 m detail is the most meaningful. For CO, O₃,
+HCHO and SO₂, Sentinel-5P's pattern within a city is weak or noisy (CO and O₃ are long-lived and regionally mixed, SO₂
+and HCHO are near the instrument's detection limit), so their 10 m maps mostly carry the satellite's own pattern with
+modest surface-based detail. Accuracy against ground stations is reported separately (Validation).
+
 ---
 
 ## 📊 Validation
