@@ -1,0 +1,12 @@
+__pycache__/
+*.pyc
+.pytest_cache/
+node_modules/
+frontend/dist/
+.env
+secrets/
+*.json.key
+*.npy
+key*.json
+*-key.json
+.cache/

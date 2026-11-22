@@ -1,0 +1,9 @@
+# Local production-like run:  GEE_SERVICE_ACCOUNT_JSON="$(cat key.json)" GEE_PROJECT=... docker compose up --build
+services:
+  app:
+    build: .
+    ports: ["8080:10000"]
+    environment:
+      - GEE_SERVICE_ACCOUNT_JSON
+      - GEE_PROJECT
+      - MAX_PIXELS=1600000
